@@ -1,0 +1,138 @@
+================================================
+🔍 INICIANDO AUDITORÍA FORENSE
+================================================
+
+[1;33m[FASE 1] Construcción de la imagen[0m
+Ejecutando: docker build --build-arg STUDENT_ID="885309" -t eco-air-backend:1.0.0 .
+[0;32m✅ Construcción exitosa[0m
+
+[1;33m[RETO 2.1] Verificación del Desacoplamiento de Capas[0m
+Comando: docker history --human --format "table {{.Size}}\t{{.CreatedBy}}" eco-air-backend:1.0.0
+SIZE      CREATED BY
+0B        ENTRYPOINT ["sh" "-c" "java $JAVA_OPTS -jar …
+0B        USER sensor_user
+0B        EXPOSE [8080/tcp]
+0B        ENV OPERATOR_ID=885309
+0B        ARG STUDENT_ID=885309
+0B        ENV JAVA_OPTS=-XX:+UseContainerSupport -XX:M…
+47.5MB    RUN /bin/sh -c chown -R sensor_user:sensorgr…
+47.5MB    COPY /build/target/eco-air-backend.jar /app/…
+8.19kB    WORKDIR /app
+41kB      RUN /bin/sh -c addgroup -S sensorgroup &&   …
+0B        ENTRYPOINT ["/__cacert_entrypoint.sh"]
+12.3kB    COPY --chmod=755 entrypoint.sh /__cacert_ent…
+12.3kB    RUN /bin/sh -c set -eux;     echo "Verifying…
+141MB     RUN /bin/sh -c set -eux;     ARCH="$(apk --p…
+0B        ENV JAVA_VERSION=jdk-17.0.20.1+1
+37.9MB    RUN /bin/sh -c set -eux;     apk add --no-ca…
+0B        ENV LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_AL…
+0B        ENV PATH=/opt/java/openjdk/bin:/usr/local/sb…
+0B        ENV JAVA_HOME=/opt/java/openjdk
+0B        CMD ["/bin/sh"]
+9.08MB    ADD alpine-minirootfs-3.24.3-x86_64.tar.gz /…
+
+[1;33m[IDENTIDAD] Hash de la Imagen[0m
+Comando: docker inspect --format='{{.Id}}' eco-air-backend:1.0.0
+Hash: sha256:33594045c1f987a0fe45e76ad38e11ba1e9f262dfcbc4caecf6c0e922af2258c
+
+[1;33m[RETO 2.2] Iniciando contenedor y verificando privilegios[0m
+Limpiando contenedores previos...
+Comando: docker run -d --name eco_air_active -p 8080:8080 eco-air-backend:1.0.0
+8bcd6eb147f639f480986b96a5e73a597a63ae736d43d40e1d85046dc45c63b4
+Esperando 10 segundos para que la aplicación inicie...
+
+Comando: docker top eco_air_active -o pid,user,comm
+PID                 USER                COMMAND
+1558                10001               java
+
+Verificando logs de inicio:
+Comando: docker logs eco_air_active | head -20
+=== EcoAir Backend - Sistema de Alertas Ambientales ===
+Version: 1.0.0
+Modo Seguro: Contenedor sin privilegios root
+Operador ID: 885309
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.1.5)
+
+2026-10-29 16:17:08 - Starting EcoAirApplication v1.0.0 using Java 17.0.20.1 with PID 1 (/app/app.jar started by sensor_user in /app)
+2026-10-29 16:17:08 - No active profile set, falling back to 1 default profile: "default"
+2026-10-29 16:17:09 - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-10-29 16:17:09 - Finished Spring Data repository scanning in 18 ms. Found 0 JPA repository interfaces.
+2026-10-29 16:17:09 - Tomcat initialized with port(s): 8080 (http)
+2026-10-29 16:17:10 - Starting service [Tomcat]
+2026-10-29 16:17:10 - Starting Servlet engine: [Apache Tomcat/10.1.15]
+
+Verificando OPERATOR_ID:
+Comando: docker exec eco_air_active env | grep OPERATOR_ID
+OPERATOR_ID=885309
+
+[1;33m[RETO 2.3] Test de Penetración - Inmutabilidad[0m
+Comando: docker exec eco_air_active touch /etc/crontab_fake
+touch: cannot touch '/etc/crontab_fake': Permission denied
+[0;32m✅ Protección correcta: No se puede escribir en /etc/[0m
+
+[1;33m[RETO 2.4] Auditoría de Artefactos de Desarrollo[0m
+Comando: docker exec eco_air_active which mvn
+[0;32m✅ Maven NO presente en imagen final[0m
+
+Comando: docker exec eco_air_active find / -name "*.java" 2>/dev/null
+[0;32m✅ Archivos .java NO presentes (excepto JRE)[0m
+
+[1;33m[RETO 3.1] Inducción del Colapso por Memoria (OOMKilled)[0m
+Limpiando contenedor anterior...
+Comando: docker run -d --name eco_air_crash -m 48m eco-air-backend:1.0.0
+a341fab322f77b44561d4776b461a4d0888aa9f78d1fc15e69a6c26390294002
+Esperando 15 segundos para observar el colapso...
+
+Comando: docker inspect eco_air_crash --format='Status: {{.State.Status}} | ExitCode: {{.State.ExitCode}} | OOMKilled: {{.State.OOMKilled}}'
+Status: exited | ExitCode: 137 | OOMKilled: true
+[0;32m✅ OOMKilled confirmado - Límite de 48MB insuficiente[0m
+
+[1;33m[RETO 3.2] Calibración del Límite Operativo Mínimo[0m
+
+==========================================
+Probando con memoria: 256m
+==========================================
+eco_air_active
+Comando: docker run -d --name eco_air_active -m 256m -p 8080:8080 eco-air-backend:1.0.0
+6fbd1628ee5f650c9e3fc02ee357a31370aafd72ef741ec4fc2b5a060b507268
+Esperando 20 segundos para inicio completo...
+
+Estado del contenedor:
+Status: running | OOMKilled: false
+
+Buscando línea de inicio exitoso:
+2026-10-29T16:17:37.536357098Z 2026-10-29 16:17:37 - Started EcoAirApplication in 3.251 seconds (process running for 3.69)
+[0;32m✅ Aplicación iniciada correctamente con 256m[0m
+
+Profiling de memoria en caliente:
+Comando: docker stats --no-stream eco_air_active
+CONTAINER ID   NAME             CPU %     MEM USAGE / LIMIT   MEM %     NET I/O         BLOCK I/O   PIDS
+6fbd1628ee5f   eco_air_active   0.14%     167.9MiB / 256MiB   65.59%    1.17kB / 126B   0B / 0B     30
+
+[0;32m==========================================
+✅ UMBRAL MÍNIMO ENCONTRADO: 256m
+==========================================\033[0m
+
+
+================================================
+🎯 AUDITORÍA COMPLETADA
+================================================
+
+Próximos pasos:
+1. Revisar la salida generada
+2. Copiar los resultados a FORENSIC_REPORT.md
+3. Probar endpoint: curl http://localhost:8080
+4. Ver logs completos: docker logs eco_air_active
+5. Detener contenedor: docker stop eco_air_active
+
+Información de la imagen:
+Hash: sha256:33594045c1f987a0fe45e76ad38e11ba1e9f262dfcbc4caecf6c0e922af2258c
+Tamaño: 436MB
+

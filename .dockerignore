@@ -1,0 +1,50 @@
+# Archivos de Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+*.sw?
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Logs
+*.log
+logs/
+
+# Documentación
+README.md
+*.md
+!FORENSIC_REPORT.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# Archivos temporales
+*.tmp
+*.temp
+*.bak
+*~
